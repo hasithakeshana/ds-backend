@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const nodemailer = require("nodemailer");
+var TeleSignSDK = require('telesignsdk');
 
 const Sensors = require('../models/sensors');
 const RoomDetails = require('../models/roomDetails');
@@ -65,11 +66,36 @@ router.patch('/updateSensor/:id',async (req,res,next)=>{
 
 });
 
+router.post('/updateSensors/:id',async (req,res,next)=>{
+
+  console.log(req.body);
+
+ try{
+   
+  const updatedSensor = await Sensors.updateOne(
+{"id" :req.params.id},
+  {$set: {"smokeLevel":req.body.smokeLevel,"co2Level":req.body.co2Level}}
+
+);
+
+   res.json(updatedSensor);
+
+
+    
+  }
+  catch(e){
+    console.log(e);
+  }
+
+});
+
 router.delete('/deleteSensor/:id',async (req,res,next)=>{
+
+ 
 
 try{
 
-  const response = Sensors.deleteOne({"id" : req.params.id });
+  const response = await Sensors.deleteOne({id : req.params.id});
 
   res.json(response);
 
@@ -153,7 +179,7 @@ router.post('/sendEmail',async (req,res,next)=>{
   // allow less secure feature on in chrome
   // link - https://myaccount.google.com/lesssecureapps
 
-  try{
+try{
 
     
 let transporter = nodemailer.createTransport({
@@ -190,14 +216,55 @@ transporter.sendMail(HelperOptions,(error,info) =>{
   res.json(info);
 });
 
-
-
-  }
-  catch(e){
+}
+catch(e){
     console.log(e);
-  }
-  
+}
+});
 
+router.post('/sendSMS',async (req,res,next)=>{
+
+  const receiverPhoneNo = req.body.phoneNo;
+
+try{
+  
+  var TeleSignSDK = require('telesignsdk');
+
+  const customerId = "BA490AC9-577B-4672-BEC5-82738279459B";
+  const apiKey = "SBnLkkwV2qXumscFRtQWcQmCGgmGMK1jy+57YYhNSDcV9+tnHybgAUyC1VYhAx84XQdw8Aye0e+7OmopDsy6oA==";
+  const rest_endpoint = "https://rest-api.telesign.com";
+  const timeout = 10*1000; // 10 secs
+
+  const client = new TeleSignSDK( customerId,
+      apiKey,
+      rest_endpoint,
+      timeout // optional
+      // userAgent
+  );
+
+  
+  const message = "SENSOR WARNING MESSAGE ------ TAKE A ACTION SOON ";
+  const messageType = "ARN";
+
+  console.log("## MessagingClient.message ##");
+
+  function messageCallback(error, responseBody) {
+      if (error === null) {
+          console.log(`Messaging response for messaging phone number: ${receiverPhoneNo}` +
+              ` => code: ${responseBody['status']['code']}` +
+              `, description: ${responseBody['status']['description']}`);
+
+              res.json('send sms successfully');
+      } else {
+          console.error("Unable to send message. " + error);
+      }
+  }
+  client.sms.message(messageCallback, receiverPhoneNo, message, messageType);
+  
+} 
+catch(e){
+console.log(e);
+}
 
 });
 

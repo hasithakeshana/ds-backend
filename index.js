@@ -1,5 +1,6 @@
 const express = require('express');
 const routes = require('./routes/api');
+require('dotenv').config();
 
 const mongoose = require('mongoose');
 
@@ -28,7 +29,7 @@ app.use(express.urlencoded({extended:true}));
 app.use('/',routes);
 
 
-app.listen(4000,function(){
+app.listen( process.env.PORT || 4000,function(){
 
     console.log('now listening for requests');
 });
